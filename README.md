@@ -1371,8 +1371,4 @@ The final production architecture is planned to evolve toward:
 
 ---
 
-# License
 
-This project is intended for educational, portfolio, and learning purposes.
-
-Add an appropriate open-source license before publicly distributing the project.
