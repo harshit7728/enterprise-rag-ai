@@ -3,7 +3,7 @@ import jwt
 from .config import settings
 
 from datetime import datetime,timedelta,timezone
-from fastapi  import Depends,HTTPException
+from fastapi  import Depends,HTTPException,status
 from fastapi.security import HTTPAuthorizationCredentials,HTTPBearer
 
 ACCESS_TOKEN_EXPIRE_MINUTES=60
@@ -43,4 +43,13 @@ def decode_access_token(credentials:HTTPAuthorizationCredentials=Depends(bearer_
         raise HTTPException(status_code=401,detail="Invalid or expired token")
 
 
+
+def get_current_user(credentials:HTTPAuthorizationCredentials=Depends(bearer_scheme))->int:
+    token=credentials.credentials
+    user_id=decode_access_token(token)
+    if user_id is None:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,detail="Invalid or expired token",headers={
+            'www-Authenticate':'Bearer'
+        })
+    return user_id
 

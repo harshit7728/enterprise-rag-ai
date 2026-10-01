@@ -6,6 +6,7 @@ from app.llm.provider import llm
 from app.rag.prompt import rag_prompt
 from app.rag.context import build_context
 from app.rag.reranker import Reranker
+from app.cache.cache import get_cached_answer
 
 reranker=Reranker()
 
@@ -81,3 +82,52 @@ async def rerank_documents(state:RAGState)->dict:
     return {
         "reranked_documents":rank_documents
     }
+
+
+
+async def check_cache_node(state:RAGState)->dict:
+    cached=await get_cached_answer(
+        user_id=state["user_id"],
+        query=state["query"],
+        document_id=state.get("document_id")
+    )
+
+    if cached is None:
+        return {
+            "cached":False
+        }
+    return {
+        "cached":True,
+        "answer":cached['anser'],
+        "citations":cached['citations']
+    }
+
+
+def cache_router(state:RAGState)->str:
+    if state.get("cached"):
+        return "cached"
+    return "miss"
+
+
+def document_router(state:RAGState)->str:
+    documents=state.get("reranked_documents",[])
+    if not documents:
+        return "no_documents"
+    
+    return "documents_found"
+
+
+async def fallback_node(state:RAGState)->dict:
+    return {
+        "answer":(
+            "I could not find relevent information ",
+            "in the documents available to you"
+        ),
+        "citations":[]
+    }
+
+
+
+async def cache_node(state:RAGState)->dict:
+    await cache_node(user_id=state["user_id"],query=state['query'],answer=state['answer'])
+    return {}

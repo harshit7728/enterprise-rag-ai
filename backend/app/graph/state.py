@@ -4,6 +4,7 @@ from langchain_core.documents import Document
 
 class RAGState(TypedDict):
     query:str
+    
     user_id:int
 
     retrieved_documents:list[Document]
@@ -13,7 +14,10 @@ class RAGState(TypedDict):
     context:str
 
     answer:str
+
     citations:list[dict]
+
+    cached:bool
 
     error:str|None
 

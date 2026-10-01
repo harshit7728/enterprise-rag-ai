@@ -2,8 +2,7 @@ from langgraph.graph import (
     END,START,StateGraph)
 from app.graph.state import RAGState
 from app.graph.nodes import (
-    analyze_query,build_rag_context,generate_answer,rerank_documents,build_citations
-)
+    analyze_query,build_rag_context,generate_answer,rerank_documents,build_citations,fallback_node,cache_router,cache_node,check_cache_node,document_router)
 
 from app.rag.langchain_retriever import (
     PostgresRetriever
@@ -45,12 +44,33 @@ def create_rag_graph(db):
     builder.add_node(
         "citations",build_citations
     )
-    builder.add_edge(START,"analyze_query")
+    builder.add_node(
+        "cache",cache_node
+    )
+    builder.add_node("check_cache",check_cache_node)
+    builder.add_node("fallback",fallback_node)
+
+    #edges
+    builder.add_edge(START,"check_cache")
+    builder.add_conditional_edges("check_cache",cache_router,{
+        'cached':END,
+        'miss':"analyze_query"
+    })
+    builder.add_edge("analyze_query","retrieve")
 
     builder.add_edge('retrieve','rerank')
+    builder.add_conditional_edges(
+        "rerank",document_router,{
+            'no_documents':'fallback',
+            'documents_found':'build_context'
+        }
+    )
     builder.add_edge('rerank','build_context')
     builder.add_edge('build_context','generate')
     builder.add_edge('generate','citation')
-    builder.add_edge('citations',END)
+    builder.add_edge('citations','cache')
+    builder.add_edge('cache',END)
+    builder.add_edge('fallback',END)
+    
     return builder.compile()
 
